@@ -16,7 +16,7 @@ public class FibonacciJob extends Job{
 	}
 	@Override
 	public void generateTasks(Space space) throws RemoteException {
-		Task<Integer> fibTask=new FibonacciTask<Integer>(this.n);
+		Task<Integer> fibTask=new FibonacciTask(this.n);
 		space.put(fibTask);
 	}
 

@@ -1,12 +1,10 @@
 package system;
 
 import java.rmi.RemoteException;
-import java.util.List;
 import java.util.Random;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import system.Successor.Closure;
-
 import api.Result;
 import api.Task;
 
@@ -45,35 +43,41 @@ public class ComputerProxy implements Runnable {
 					Task<?> aTask = tasks.take();
 					Result<?> r = null;
 					switch (aTask.getStatus()) {
-					case EXECUTE:
-						r = aTask.execute();
-						Successor s = new Successor(aTask, space,
-								aTask.getNumberOfChildren());
-						space.addSuccessor(s);
+					case DECOMPOSE:
+						r = compObj.execute(aTask);
+
 						if (r.getSubTasks() != null) {
+							Successor s = new Successor(aTask, space,
+									aTask.getDecompositionSize());
+							space.addSuccessor(s);
 							for (Task<?> task : r.getSubTasks()) {
 								space.put(task);
 							}
 						} else if (r.getValue() != null) {
-							Closure parentClosure = space.getClosure(aTask
-									.getParentId());
-							parentClosure.put(r.getValue());
+							if (aTask.getId().equals(aTask.getParentId())) {
+								space.putResult(r);
+							} else {
+
+								Closure parentClosure = space.getClosure(aTask
+										.getParentId());
+								parentClosure.put(r.getValue());
+							}
 						}
 						break;
 					case COMPOSE:
-						r = aTask.execute();
-						
+						Closure taskClosure = space.getClosure(aTask.getId());
+						r = compObj.execute(aTask, taskClosure.getValues());
+
 						if (r.getValue() != null) {
-							if(aTask.getId().equals(aTask.getParentId())){
+							if (aTask.getId().equals(aTask.getParentId())) {
 								space.putResult(r);
-							}
-							else{
-							Closure parentClosure = space.getClosure(aTask
-									.getParentId());
-							parentClosure.put(r.getValue());
+							} else {
+								Closure parentClosure = space.getClosure(aTask
+										.getParentId());
+								parentClosure.put(r.getValue());
 							}
 						}
-
+						space.removeSuccessor(aTask.getId());
 						break;
 					}
 				} catch (InterruptedException e) {

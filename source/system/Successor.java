@@ -4,7 +4,6 @@ import java.rmi.RemoteException;
 import java.util.List;
 import java.util.Vector;
 
-import api.Space;
 import api.Task;
 
 public class Successor implements Runnable {
@@ -17,14 +16,14 @@ public class Successor implements Runnable {
 	private Closure aClosure;
 	
 	
-	public static enum Status{READY,WAITING};
+	public static enum Status{READY,WAITING,EXECUTING};
 	
 	private Successor(int joinCounter){
 		this.threadStatus=Status.WAITING;
 		this.aClosure=new Closure(joinCounter);
 	}
 	
-	public Successor(Task aTask, SpaceImpl spaceImpl, int joinCounter){
+	public Successor(Task<?> aTask, SpaceImpl spaceImpl, int joinCounter){
 		this(joinCounter);
 		this.space=spaceImpl;
 		this.task=aTask;
@@ -33,13 +32,13 @@ public class Successor implements Runnable {
 		
 	}
 	public void start(){
+		this.setStatus(Status.EXECUTING);
 		t.start();
 	}
 	
 	@Override
 	public void run() {
 		try {
-			
 			space.put(task);
 		} catch (RemoteException e) {
 			e.printStackTrace();
@@ -75,6 +74,10 @@ public class Successor implements Runnable {
 			if(this.joinCounter==0){
 				setStatus(Status.READY);
 			}
+		}
+		
+		public final List<Object> getValues(){
+			return this.values;
 		}
 	}
 

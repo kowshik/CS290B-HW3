@@ -6,7 +6,6 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -37,6 +36,7 @@ import api.Task;
 public class SpaceImpl extends UnicastRemoteObject implements Space,
 		Computer2Space, Runnable {
 
+	private Thread t;
 	private static final long serialVersionUID = 3093568798450948074L;
 	private Map<String, Successor> waitingTasks;
 	private LinkedBlockingQueue<Result<?>> results;
@@ -50,11 +50,11 @@ public class SpaceImpl extends UnicastRemoteObject implements Space,
 		this.results = new LinkedBlockingQueue<Result<?>>();
 		this.proxies = Collections
 				.synchronizedList(new Vector<ComputerProxy>());
-
+		t = new Thread(this, "Space");
+		t.start();
 	}
 
 	public void put(Task<?> aTask) throws RemoteException {
-
 		if (proxies.size() > 0) {
 			int random = new Random().nextInt(this.proxies.size());
 			proxies.get(random).addTask(aTask);
@@ -114,7 +114,6 @@ public class SpaceImpl extends UnicastRemoteObject implements Space,
 					Successor s = e.getValue();
 					if (s.getStatus() == Successor.Status.READY) {
 						s.start();
-						waitingTasks.remove(e.getKey());
 					}
 				}
 			}
@@ -123,9 +122,14 @@ public class SpaceImpl extends UnicastRemoteObject implements Space,
 
 	public void addSuccessor(Successor s) {
 		synchronized (this) {
-			
 			waitingTasks.put(s.getId(), s);
-			System.out.println(waitingTasks);
+		}
+
+	}
+
+	public void removeSuccessor(String successorId) {
+		synchronized (this) {
+			waitingTasks.remove(successorId);
 		}
 
 	}

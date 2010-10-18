@@ -9,7 +9,7 @@ import api.Space;
 
 public class FibonacciClient {
 
-	private static final int N = 2;
+	private static final int N = 16;
 
 	public static void main(String[] args) {
 
