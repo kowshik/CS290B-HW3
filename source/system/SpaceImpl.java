@@ -44,9 +44,9 @@ public class SpaceImpl extends UnicastRemoteObject implements Space,
 	private static final int PORT_NUMBER = 2672;
 
 	public SpaceImpl() throws RemoteException {
-		
+
 		this.waitingTasks = Collections
-		.synchronizedMap(new HashMap<String, Successor>());
+				.synchronizedMap(new HashMap<String, Successor>());
 		this.results = new LinkedBlockingQueue<Result<?>>();
 		this.proxies = Collections
 				.synchronizedList(new Vector<ComputerProxy>());
@@ -58,8 +58,10 @@ public class SpaceImpl extends UnicastRemoteObject implements Space,
 		if (proxies.size() > 0) {
 			int random = new Random().nextInt(this.proxies.size());
 			proxies.get(random).addTask(aTask);
+			return;
 
 		}
+
 		System.err
 				.println("Unable to register tasks due to absence of computer proxies");
 
@@ -68,8 +70,6 @@ public class SpaceImpl extends UnicastRemoteObject implements Space,
 	public void putResult(Result<?> result) throws RemoteException {
 		results.add(result);
 	}
-
-	
 
 	public Result<?> takeResult() throws RemoteException {
 		try {
@@ -106,19 +106,34 @@ public class SpaceImpl extends UnicastRemoteObject implements Space,
 
 	@Override
 	public void run() {
-		while(true){
-		  synchronized(waitingTasks) { 
-			  Set<Entry<String, Successor>> s = waitingTasks.entrySet();
-		     for(Entry<String, Successor> e : s){
-		    	if( e.getValue().getStatus() == Successor.Status.READY){
-		    		
-		    	}
-		     }
-		        
-		  }
+		while (true) {
+			synchronized (this) {
+				Set<Entry<String, Successor>> successorSet = waitingTasks
+						.entrySet();
+				for (Entry<String, Successor> e : successorSet) {
+					Successor s = e.getValue();
+					if (s.getStatus() == Successor.Status.READY) {
+						s.start();
+						waitingTasks.remove(e.getKey());
+					}
+				}
+			}
+		}
+	}
 
+	public void addSuccessor(Successor s) {
+		synchronized (this) {
+			
+			waitingTasks.put(s.getId(), s);
+			System.out.println(waitingTasks);
 		}
 
 	}
 
+	public Successor.Closure getClosure(String id) {
+		synchronized (this) {
+			return waitingTasks.get(id).getClosure();
+		}
+
+	}
 }

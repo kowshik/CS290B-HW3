@@ -6,11 +6,22 @@ import java.util.List;
 
 public interface Task<T> {
 	
+	enum Status{EXECUTE, COMPOSE};
+	
 	Result<T> execute();
 	
-	T compose(List<T> list);
+	Result<T> execute(List<T> list);
 	
-	String getTaskIdentifier();
-	void setTaskIdentifier(String id);
+	String getId();
+	void setId(String id);
 	
+	String getParentId();
+	void setParentId(String id);
+	
+	int getNumberOfChildren();
+	
+	
+	
+	Status getStatus();
+	void setStatus(Task.Status s);
 }

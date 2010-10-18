@@ -1,7 +1,11 @@
 package system;
 
 import java.rmi.RemoteException;
+import java.util.List;
 import java.util.Random;
+import java.util.concurrent.LinkedBlockingQueue;
+
+import system.Successor.Closure;
 
 import api.Result;
 import api.Task;
@@ -23,31 +27,74 @@ public class ComputerProxy implements Runnable {
 	private Computer compObj;
 	private SpaceImpl space;
 	private Thread t;
+	private LinkedBlockingQueue<Task<?>> tasks;
 
-	
 	public ComputerProxy(Computer compObj, SpaceImpl space) {
 		this.compObj = compObj;
 		this.space = space;
+		this.tasks = new LinkedBlockingQueue<Task<?>>();
 		t = new Thread(this, "ComputerProxy " + getRandomProxyName());
 		t.start();
+
 	}
 
-	
-	
-	
 	public void run() {
-		
+		while (true) {
+			if (!tasks.isEmpty()) {
+				try {
+					Task<?> aTask = tasks.take();
+					Result<?> r = null;
+					switch (aTask.getStatus()) {
+					case EXECUTE:
+						r = aTask.execute();
+						Successor s = new Successor(aTask, space,
+								aTask.getNumberOfChildren());
+						space.addSuccessor(s);
+						if (r.getSubTasks() != null) {
+							for (Task<?> task : r.getSubTasks()) {
+								space.put(task);
+							}
+						} else if (r.getValue() != null) {
+							Closure parentClosure = space.getClosure(aTask
+									.getParentId());
+							parentClosure.put(r.getValue());
+						}
+						break;
+					case COMPOSE:
+						r = aTask.execute();
+						
+						if (r.getValue() != null) {
+							if(aTask.getId().equals(aTask.getParentId())){
+								space.putResult(r);
+							}
+							else{
+							Closure parentClosure = space.getClosure(aTask
+									.getParentId());
+							parentClosure.put(r.getValue());
+							}
+						}
 
+						break;
+					}
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				} catch (RemoteException e) {
+					e.printStackTrace();
+				}
+
+			}
+		}
 	}
-
 
 	public void addTask(Task<?> aTask) {
-		// TODO Auto-generated method stub
-		
+		try {
+			this.tasks.put(aTask);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+
 	}
-	
-	
-	
+
 	private String getRandomProxyName() {
 		char first = (char) ((new Random().nextInt(26)) + 65);
 		char second = (char) ((new Random().nextInt(26)) + 65);
@@ -56,7 +103,3 @@ public class ComputerProxy implements Runnable {
 	}
 
 }
-
-
-
-
