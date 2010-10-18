@@ -10,6 +10,6 @@ import api.Task;
 
 public interface Computer extends Remote {
 	
-	Result<?> execute(Task<?> t) throws RemoteException;
-	Result<?> execute(Task<?> t,List<?> list) throws RemoteException;
+	Result<?> decompose(Task<?> t) throws RemoteException;
+	Result<?> compose(Task<?> t,List<?> list) throws RemoteException;
 }

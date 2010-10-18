@@ -44,12 +44,12 @@ public class ComputerProxy implements Runnable {
 					Result<?> r = null;
 					switch (aTask.getStatus()) {
 					case DECOMPOSE:
-						r = compObj.execute(aTask);
-
+						r = compObj.decompose(aTask);
 						if (r.getSubTasks() != null) {
 							Successor s = new Successor(aTask, space,
 									aTask.getDecompositionSize());
 							space.addSuccessor(s);
+
 							for (Task<?> task : r.getSubTasks()) {
 								space.put(task);
 							}
@@ -63,10 +63,11 @@ public class ComputerProxy implements Runnable {
 								parentClosure.put(r.getValue());
 							}
 						}
+						aTask.setStatus(Task.Status.COMPOSE);
 						break;
 					case COMPOSE:
 						Closure taskClosure = space.getClosure(aTask.getId());
-						r = compObj.execute(aTask, taskClosure.getValues());
+						r = compObj.compose(aTask, taskClosure.getValues());
 
 						if (r.getValue() != null) {
 							if (aTask.getId().equals(aTask.getParentId())) {

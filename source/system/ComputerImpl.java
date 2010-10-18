@@ -19,8 +19,8 @@ public class ComputerImpl extends UnicastRemoteObject implements Computer {
 	}
 
 	@Override
-	public Result<?> execute(Task<?> t) {
-		return t.execute();
+	public Result<?> decompose(Task<?> t) {
+		return t.decompose();
 	}
 
 	public static void main(String[] args) {
@@ -49,7 +49,7 @@ public class ComputerImpl extends UnicastRemoteObject implements Computer {
 	}
 
 	@Override
-	public Result<?> execute(Task<?> t, List<?> list) throws RemoteException {
+	public Result<?> compose(Task<?> t, List<?> list) throws RemoteException {
 		return t.compose(list);
 	}
 

@@ -7,7 +7,7 @@ public interface Task<T> {
 		DECOMPOSE, COMPOSE
 	};
 
-	Result<T> execute();
+	Result<T> decompose();
 
 	Result<T> compose(List<?> list);
 
@@ -24,6 +24,8 @@ public interface Task<T> {
 	void setId(String taskId);
 
 	int getDecompositionSize();
+	
+	List<String> getChildIds();
 
 	void setStartTime(long startTime);
 	
