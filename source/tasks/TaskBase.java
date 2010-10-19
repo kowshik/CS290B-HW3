@@ -76,4 +76,10 @@ public abstract class TaskBase<T> implements Task<T>, Serializable {
 		return startTime;
 	}
 
+	protected void init(Task.Status s, String taskId, String parentId) {
+		this.setStatus(s);
+		this.setId(taskId);
+		this.setParentId(parentId);
+	}
+
 }

@@ -8,7 +8,7 @@ import system.ResultImpl;
 import api.Result;
 import api.Task;
 
-public class FibonacciTask extends TaskBase<Integer> implements Task<Integer>,
+public class FibonacciTask extends TaskBase<Integer> implements
 		Serializable {
 
 	private static final long serialVersionUID = -9046135328040176063L;
@@ -24,10 +24,10 @@ public class FibonacciTask extends TaskBase<Integer> implements Task<Integer>,
 
 	private FibonacciTask(int n, Task.Status s, String taskId, String parentId) {
 		this(n);
-		this.setStatus(s);
-		this.setId(taskId);
-		this.setParentId(parentId);
+		init(s, taskId, parentId);
 	}
+
+	
 
 	@Override
 	public Result<Integer> decompose() {

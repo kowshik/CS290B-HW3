@@ -39,8 +39,10 @@ public class ComputerProxy implements Runnable {
 	public void run() {
 		while (true) {
 			if (!tasks.isEmpty()) {
+				Task<?> aTask = null;
 				try {
-					Task<?> aTask = tasks.take();
+
+					aTask = tasks.take();
 					Result<?> r = null;
 					switch (aTask.getStatus()) {
 					case DECOMPOSE:
@@ -84,7 +86,15 @@ public class ComputerProxy implements Runnable {
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				} catch (RemoteException e) {
-					e.printStackTrace();
+					System.err
+							.println("ComputerProxy : RemoteException occured in thread : "
+									+ this.t.getName());
+					System.err.println("Reassigning task to task queue");
+					try {
+						space.put(aTask);
+					} catch (RemoteException ex) {
+						ex.printStackTrace();
+					}
 				}
 
 			}
