@@ -8,6 +8,8 @@ import api.Task;
 
 public abstract class TaskBase<T> implements Task<T>, Serializable {
 
+	private static final long serialVersionUID = -139155829609653917L;
+	
 	private Status status;
 	private String parentId;
 	private String taskId;
