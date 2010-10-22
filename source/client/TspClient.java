@@ -10,6 +10,10 @@ import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.util.logging.FileHandler;
+import java.util.logging.Handler;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
@@ -27,6 +31,8 @@ import api.Space;
  */
 public class TspClient {
 
+	private static final String LOG_FILE="/cs/student/kowshik/tsp_client.log";
+	
 	// Size of JFrame displayed on the screen
 	private static int N_PIXELS = 500;
 
@@ -45,7 +51,13 @@ public class TspClient {
 
 		try {
 
-			long jobStartTime = System.currentTimeMillis();
+			Logger logger = Logger.getLogger("TspClient");
+			logger.setUseParentHandlers(false);
+			Handler fh = new FileHandler(
+					LOG_FILE);
+			fh.setFormatter(new SimpleFormatter());
+			logger.addHandler(fh);
+			long startTime=System.currentTimeMillis();
 			Space space = (Space) Naming.lookup("//" + computeSpaceServer + "/"
 					+ Space.SERVICE_NAME);
 			
@@ -74,12 +86,8 @@ public class TspClient {
 					.add(new JScrollPane(euclideanTspLabel), BorderLayout.EAST);
 			frame.pack();
 			frame.setVisible(true);
-			long jobEndTime = System.currentTimeMillis();
-			System.out.println("Client Job Start Time : " + jobStartTime
-					+ " ms");
-			System.out.println("Client Job End Time : " + jobEndTime + " ms");
-			System.out.println("Client Job Elapsed Time : "
-					+ (jobEndTime - jobStartTime) + " ms");
+			logger.info("Elapsed Time="+(System.currentTimeMillis()-startTime));
+			
 		} catch (RemoteException e) {
 			System.err.println("MandelbrotSetClient exception : ");
 			e.printStackTrace();

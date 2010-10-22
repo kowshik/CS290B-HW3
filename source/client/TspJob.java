@@ -1,17 +1,20 @@
 package client;
 
-import java.awt.geom.Point2D;
+import java.io.IOException;
 import java.rmi.RemoteException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
+import java.util.logging.FileHandler;
+import java.util.logging.Handler;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 import tasks.TspTask;
+import tasks.TspTask.City;
 import api.Result;
 import api.Space;
-import api.Task;
 
 /**
- * Defines a Travelling Salesman Problem through the generic @{link client.Job
+ * Defines a Travelling Salesman Problem through the generic {@link client.Job
  * Job} interface
  * 
  * @author Manasa Chandrasekhar
@@ -20,14 +23,13 @@ import api.Task;
  */
 public class TspJob extends Job {
 
-	private double[][] cities;
-	private int numOfChildren;
-	private int[] minRoute;
-	private String taskId;
-	private int parentId;
+	private static final String LOG_FILE = "/cs/student/kowshik/tsp_joib.log";
 
-	// Used to time the execution of methods for profiling
-	private Map<String, Long> timeMap;
+	private double[][] cities;
+	private int[] minRoute;
+	private Logger logger;
+	private Handler handler;
+	private long startTime;
 
 	/**
 	 * @param cities
@@ -37,14 +39,24 @@ public class TspJob extends Job {
 	 */
 	public TspJob(final double[][] cities) {
 		this.cities = cities.clone();
-		this.timeMap = new HashMap<String, Long>();
-		//this.numOfChildren = cities.length-1;;
+		this.logger = Logger.getLogger("TspJob");
+		this.logger.setUseParentHandlers(false);
+		this.handler = null;
+		try {
+			this.handler = new FileHandler(LOG_FILE);
+
+		} catch (SecurityException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		this.handler.setFormatter(new SimpleFormatter());
+		logger.addHandler(handler);
 	}
 
 	/**
-	 * Decomposes the Travelling Salesman Problem computation into into a list
-	 * of smaller tasks of type @{link tasks.TspTask TspTask}, each of which are
-	 * executed remotely in a compute space ({@link api.Space Space})
+	 * Executes the Travelling Salesman Problem remotely in a compute space (
+	 * {@link api.Space Space})
 	 * 
 	 * @param space
 	 *            Compute space to which @{link tasks.TspTask TspTask} objects
@@ -54,16 +66,10 @@ public class TspJob extends Job {
 	 * @see client.Job Job
 	 */
 	public void generateTasks(Space space) throws RemoteException {
-		int endCity = 0;
+		this.startTime = System.currentTimeMillis();
+		space.put(new TspTask(cities));
 
-		int startCity=endCity;
-			Task<int[]> aTspTask = new TspTask(startCity, endCity, cities);
-			timeMap.put(taskId, System.currentTimeMillis());
-			space.put(aTspTask);
-			
-		}
-
-	
+	}
 
 	/**
 	 * Gathers {@link api.Result Result} objects from the compute space and
@@ -78,12 +84,18 @@ public class TspJob extends Job {
 	 */
 	@Override
 	public void collectResults(Space space) throws RemoteException {
-		 
-			Result<int[]> r = (Result<int[]>) space.takeResult();
-			
-			
-			int[] route = r.getValue();
-			this.minRoute = route;
+
+		Result<List<City>> r = (Result<List<City>>) space.takeResult();
+		logger.info("Elapsed Time=" + (System.currentTimeMillis() - startTime));
+		this.minRoute = new int[r.getValue().size()];
+		int index = 0;
+		for (City c : r.getValue()) {
+			minRoute[index] = c.getLabel();
+			index++;
+		}
+
+		this.handler.close();
+
 	}
 
 	/**
@@ -100,7 +112,5 @@ public class TspJob extends Job {
 	public int[] getAllResults() {
 		return this.minRoute;
 	}
-
-	
 
 }

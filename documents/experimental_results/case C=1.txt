@@ -1,0 +1,30 @@
+C=1 -> Special Case
+-------------------
+
+Following is the average task execution as seen by the remote computers and the client for each of the three tasks viz. fibonacci number generation, mandelbrot set computation and TSP.
+
+
+
+Different VM, Same machine
+--------------------------
+
+Fibonacci (Remote Computers) = 1363822.5358596931 ms
+Fibonacci (Client) = 2796908 ms
+
+TSP (Remote Computers)= 7669.2131147540986
+TSP (Client) = 16569 ms
+
+Mandelbrot Set (Remote Computers) = 971.88235294117646 ms
+Mandelbrot Set (Client) = 9219 ms
+
+Different VM, Different machines
+--------------------------------
+
+Fibonacci (Remote Computers)= 26276.8189790166 ms
+Fibonacci (Client)= 62585 ms
+
+TSP (Remote Computers)= 19797.213114754097 ms
+TSP (Client) = 36272 ms
+
+Mandelbrot Set (Remote Computers) = 716.23529411764707 ms
+Mandelbrot Set (Client) = 2946 ms

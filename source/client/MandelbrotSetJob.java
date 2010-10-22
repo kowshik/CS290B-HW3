@@ -1,6 +1,11 @@
 package client;
 
+import java.io.IOException;
 import java.rmi.RemoteException;
+import java.util.logging.FileHandler;
+import java.util.logging.Handler;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 import tasks.MandelbrotSetTask;
 import api.Result;
@@ -23,9 +28,12 @@ public class MandelbrotSetJob extends Job {
 	private double edgeLength;
 	private int n;
 	private int iterLimit;
-
+	private  Logger logger;
+	private Handler handler;
 	private int[][] allValues;
-
+	private long startTime;
+	private static final String LOG_FILE="/cs/student/kowshik/mandelbrotset_job.log";
+	
 	/**
 	 * 
 	 * @param lowerX
@@ -52,13 +60,24 @@ public class MandelbrotSetJob extends Job {
 		this.edgeLength = edgeLength;
 		this.n = n;
 		this.iterLimit = iterLimit;
-
+		this.logger = Logger.getLogger("MandelbrotSetJob");
+		this.logger.setUseParentHandlers(false);
+		this.handler=null;
+		try {
+			this.handler = new FileHandler(
+					LOG_FILE);
+			
+		} catch (SecurityException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		this.handler.setFormatter(new SimpleFormatter());
+		logger.addHandler(handler);
 	}
 
 	/**
-	 * Decomposes the Mandelbrot Set computation into into a list of smaller
-	 * tasks of type {@link tasks.MandelbrotSetTask MandelbrotSetTask}, each of
-	 * which are executed remotely in a compute space ({@link api.Space Space})
+	 * Executes Mandelbrot Set computation remotely in a compute space ({@link api.Space Space})
 	 * 
 	 * @param space
 	 *            Compute space to which @{link tasks.MandelbrotSetTask
@@ -69,9 +88,11 @@ public class MandelbrotSetJob extends Job {
 	 */
 	public void generateTasks(Space space) throws RemoteException {
 
-		Task<MandelbrotSetTask.MandelbrotSetChunk> aMandelbrotSetTask = new MandelbrotSetTask(
+		Task<MandelbrotSetTask.MandelbrotSetTaskResult> aMandelbrotSetTask = new MandelbrotSetTask(
 				lowerX, lowerY, edgeLength, n, iterLimit);
+		this.startTime=System.currentTimeMillis();
 		space.put(aMandelbrotSetTask);
+
 
 	}
 
@@ -87,10 +108,11 @@ public class MandelbrotSetJob extends Job {
 	 * @see client.Job Job
 	 */
 	public void collectResults(Space space) throws RemoteException {
-		Result<MandelbrotSetTask.MandelbrotSetChunk> r = (Result<MandelbrotSetTask.MandelbrotSetChunk>) space
+		Result<MandelbrotSetTask.MandelbrotSetTaskResult> r = (Result<MandelbrotSetTask.MandelbrotSetTaskResult>) space
 				.takeResult();
 		this.allValues=r.getValue().getValues();
-
+		logger.info("Elapsed Time="+(System.currentTimeMillis()-startTime));
+		this.handler.close();
 	}
 
 	/**

@@ -6,16 +6,25 @@ import java.util.Vector;
 
 import api.Task;
 
+/**
+ * Models properties of a generic divide and conquer task
+ * 
+ * @author Manasa Chandrasekhar
+ * @author Kowshik Prakasam
+ */
 public abstract class TaskBase<T> implements Task<T>, Serializable {
 
 	private static final long serialVersionUID = -139155829609653917L;
-	
+
 	private Status status;
 	private String parentId;
 	private String taskId;
 	private long startTime;
 	protected static final String ID_DELIM = "-";
-	protected static final String DEFAULT_TASK_ID = "0-0";
+	protected static final int DEFAULT_TASK_LEVEL = 0;
+	protected static final int DEFAULT_CHILD_LEVEL = 0;
+	protected static final String DEFAULT_TASK_ID = DEFAULT_TASK_LEVEL
+			+ ID_DELIM + DEFAULT_CHILD_LEVEL;
 
 	public TaskBase(String taskId, String parentId, Status status,
 			long startTime) {
@@ -84,4 +93,9 @@ public abstract class TaskBase<T> implements Task<T>, Serializable {
 		this.setParentId(parentId);
 	}
 
+	protected int getTaskLevel() {
+		String[] parts = this.getId().split(ID_DELIM);
+		int level = Integer.parseInt(parts[0]);
+		return level;
+	}
 }

@@ -7,9 +7,8 @@ import java.util.List;
 import java.util.Vector;
 
 import system.ResultImpl;
-
-import api.Task;
 import api.Result;
+import api.Task;
 
 /**
  * Computes an optimal solution for the <a
@@ -19,200 +18,169 @@ import api.Result;
  * @author Manasa Chandrasekhar
  * @author Kowshik Prakasam
  */
-public final class TspTask extends TaskBase<int[]> implements Task<int[]>,
+public class TspTask extends TaskBase<List<TspTask.City>> implements
 		Serializable {
 
+	/**
+	 * Represents a city in the travelling salesman problem by defining its
+	 * x-coordinate, y-coordinate and label.
+	 * 
+	 * @author Manasa Chandrasekhar
+	 * @author Kowshik Prakasam*
+	 */
+	public class City implements Serializable {
+
+		private static final long serialVersionUID = -8660442769258565881L;
+		private double x;
+		private double y;
+		private int label;
+
+		public City(int label, double x, double y) {
+			this.x = x;
+			this.y = y;
+			this.label = label;
+		}
+
+		public void setX(int x) {
+			this.x = x;
+		}
+
+		public double getX() {
+			return x;
+		}
+
+		public void setY(int y) {
+			this.y = y;
+		}
+
+		public double getY() {
+			return y;
+		}
+
+		public void setLabel(int label) {
+			this.label = label;
+		}
+
+		public int getLabel() {
+			return label;
+		}
+
+		public String toString() {
+			return "" + label;
+		}
+
+		@Override
+		public boolean equals(Object c) {
+			return this.getLabel() == (((City) c).getLabel());
+		}
+
+	}
+
 	private static final long serialVersionUID = 3276207466199157936L;
-	private double[][] cities;
-	private int startCity;
-	private int endCity;
-	private int NUMBER_OF_LEVELS = 2;
-	private long startTime;
+	private List<City> citiesList;
+	private City startCity;
+	private static final int NUMBER_OF_LEVELS = 2;
 	private int numberOfChildren;
-	private int[] cityList;
 
 	/**
-	 * @param startCity
-	 *            Starting city to be assumed in computation of the solution
-	 * @param endCity
-	 *            Ending city to be assumed in computation of the solution
 	 * @param cities
 	 *            Represents the x and y coordinates of cities. cities[i][0] is
 	 *            the x-coordinate of city[i] and cities[i][1] is the
 	 *            y-coordinate of city[i].
-	 * @param taskIdentifier
-	 *            A unique task identifier for this task
 	 */
-
 	
-	public TspTask(int startCity, int endCity, double[][] cities) {
+	public TspTask(double[][] cities) {
 		super(DEFAULT_TASK_ID, DEFAULT_TASK_ID, Task.Status.DECOMPOSE, System
 				.currentTimeMillis());
-		this.startCity = startCity;
-		this.endCity = endCity;
-		this.cities = cities.clone();
-		this.numberOfChildren=cities.length-1;
-		this.cityList = new int[cities.length];
-		for (int i=0;i<cities.length;i++)
-			this.cityList[i]=i;
-
-	}
-	 
-
-	private TspTask(int startCity, int endCity, double[][] cities,
-			String taskId, String parentId, Task.Status s, Long startTime, int noOfChildren) {
-		super(taskId, parentId, s, startTime);
-		this.startCity = startCity;
-		this.endCity = endCity;
-		this.cities = cities.clone();
-		this.startTime = System.currentTimeMillis();
-		this.numberOfChildren = noOfChildren;
-		this.cityList = new int[cities.length];
-		for (int i=0;i<cities.length;i++){
-			this.cityList[i]=i;
-			
+		citiesList = new Vector<City>();
+		for (int cityIndex = 0; cityIndex < cities.length; cityIndex++) {
+			citiesList.add(new City(cityIndex, cities[cityIndex][0],
+					cities[cityIndex][1]));
 		}
+		this.startCity = new City(0, cities[0][0], cities[0][1]);
+		this.numberOfChildren = citiesList.size() - 1;
 	}
 
+	private TspTask(City startCity, List<City> citiesList, String taskId,
+			String parentId, Task.Status s) {
+		super(taskId, parentId, Task.Status.DECOMPOSE, System
+				.currentTimeMillis());
+		this.citiesList = citiesList;
+		this.startCity = startCity;
+		this.numberOfChildren = citiesList.size();
+	}
 
-
+	@Override
 	/**
-	 * 
-	 * Generates the solution to the Travelling Salesman Problem.
-	 * 
-	 * @return An array containing cities in order that constitute an optimal
-	 *         solution to TSP
-	 * 
-	 * @see api.Task Task
+	 * Implements the decompose phase of TSP divide and conquer solution
 	 */
-	public Result<int[]> decompose() {
+	public Result<List<City>> decompose() {
 
-		System.out.println("In tsp decompose");
-		List<Task<int[]>> subTasks = new Vector<Task<int[]>>();
-	//	int[] cityList = new int[cities.length - 1];
+		int level = this.getTaskLevel();
+		if (level < NUMBER_OF_LEVELS) {
 
-		int[] permutation = getFirstPermutation(this.startCity, this.endCity,
-				this.cityList);
-
-		// int numberOfChildren = permutation.length;
-		System.out.println("got first permutation");
-		// System.out.println("Permutation-length:"+permutation.length +
-		// "Last element:"+ permutation[permutation.length]);
-		if (this.getTaskLevel() < NUMBER_OF_LEVELS) {
-			System.out.println("Task level:" + this.getTaskLevel());
-			List<String> childids = this.getChildIds();
-
-			for (int i = 0; i < childids.size(); i++) {
-
-				String child = childids.remove(0);
-				System.out.println("Childids: " + child);
-				subTasks.add(new TspTask(cityList[i], this.startCity,
-						cities, child, this.getId(), Task.Status.DECOMPOSE,
-						this.startTime, this.numberOfChildren--));
-				System.out.println("Added a new subtask :" + child);
+			List<Task<List<City>>> subTasks = new Vector<Task<List<City>>>();
+			List<String> childIds = this.getChildIds();
+			int childIndex = 0;
+			for (int i = 0; i < citiesList.size(); i++) {
+				if (!citiesList.get(i).equals(this.startCity)) {
+					City newStartCity = citiesList.get(i);
+					String childId = childIds.get(childIndex);
+					childIndex++;
+					List<City> childCities = new Vector<City>();
+					for (int j = 0; j < citiesList.size(); j++) {
+						if (!citiesList.get(j).equals(this.startCity)
+								&& !citiesList.get(j).equals(newStartCity)) {
+							childCities.add(citiesList.get(j));
+						}
+					}
+					TspTask childTask = new TspTask(newStartCity, childCities,
+							childId, this.getId(), Task.Status.DECOMPOSE);
+					subTasks.add(childTask);
+				}
 			}
-			
-			this.setStatus(Task.Status.COMPOSE);
-			return new ResultImpl<int[]>(startTime, System.currentTimeMillis(),
-					subTasks);
-		} else {
-			
-			int[] minRoute = null;
-			double endToStartLength = findLength(cities[this.endCity][0],
-					cities[this.endCity][1], cities[this.startCity][0],
-					cities[this.startCity][1]);
-			double minLength = Double.MAX_VALUE;
-			do {
-				double thisLength = 0;
-				int i;
-				for (i = 0; i < permutation.length - 1; i++) {
-					thisLength += findLength(cities[permutation[i]][0],
-							cities[permutation[i]][1],
-							cities[permutation[i + 1]][0],
-							cities[permutation[i + 1]][1]);
-				}
-				thisLength += findLength(cities[permutation[i]][0],
-						cities[permutation[i]][1], cities[this.endCity][0],
-						cities[this.endCity][1]);
-				double startToNextLength = findLength(
-						cities[this.startCity][0], cities[this.startCity][1],
-						cities[permutation[0]][0], cities[permutation[0]][1]);
-
-				thisLength += endToStartLength + startToNextLength;
-
-				if (thisLength < minLength) {
-					minLength = thisLength;
-					minRoute = permutation.clone();
-				}
-
-			} while (nextPermutation(permutation));
-
-			int[] fullMinRoute = Arrays.copyOf(minRoute, minRoute.length + 2);
-			fullMinRoute[fullMinRoute.length - 2] = this.endCity;
-			fullMinRoute[fullMinRoute.length - 1] = this.startCity;
-
-			return new ResultImpl<int[]>(startTime, System.currentTimeMillis(),
-					fullMinRoute);
+			return new ResultImpl<List<City>>(this.getStartTime(),
+					System.currentTimeMillis(), subTasks);
 		}
+		List<City> minRoute = findMinRoute();
+
+		return new ResultImpl<List<City>>(this.getStartTime(),
+				System.currentTimeMillis(), minRoute);
+
 	}
 
-	public Result<int[]> compose(List<?> list){
-		int thisLength =0;
+	//Finds minimum route
+	private List<City> findMinRoute() {
+		int[] permutation = new int[citiesList.size()];
+		for (int i = 0; i < citiesList.size(); i++) {
+			permutation[i] = i;
+		}
+		Arrays.sort(permutation);
 		double minLength = Double.MAX_VALUE;
-		int[] minRoute = null;
-		double endToStartLength = findLength(cities[this.endCity][0],
-				cities[this.endCity][1], cities[this.startCity][0],
-				cities[this.startCity][1]);
-		
-		for (int i = 0; i < list.size() - 1; i++) {
-			int[] curList = (int[])list.remove(i);
-			for(int j=0; j< curList.length-1; j++) {
-			thisLength += findLength(cities[curList[j]][0],
-					cities[curList[j]][1],
-					cities[curList[j+1]][0],cities[curList[j+1]][1]);
-			} 
-		thisLength += findLength(cities[curList[i]][0],
-				cities[curList[i]][1], cities[this.endCity][0],
-				cities[this.endCity][1]);
-		/*double startToNextLength = findLength(
-				cities[this.startCity][0], cities[this.startCity][1],
-				cities[curList[0]][0], cities[curList[0]][1]);*/
+		int[] minRoute = permutation.clone();
+		do {
+			double thisLength = findLength(this.startCity,
+					citiesList.get(permutation[0]));
+			int i;
 
-		thisLength += endToStartLength;
-
-		if (thisLength < minLength) {
-			minLength = thisLength;
-			minRoute = curList.clone();
-		}
-		
-		}
-		return new ResultImpl<int[]>(startTime, System.currentTimeMillis(),
-				minRoute);
-		
-	}
-
-	private int[] getFirstPermutation(int startCity, int endCity,
-			int[] cityList) {
-		System.out.println("In first permutation");
-		System.out.println("Start City"+startCity);
-		System.out.println("Endcity"+endCity);
-		//System.out.println("Cities length :"+cities.length);
-		int[] firstPermutation = new int[cityList.length -1];
-		int index = 0;
-		for (int i = 0; i < cityList.length; i++) {
-			System.out.println("In first permutation: cityList Length"+cityList.length);
-			if (i != endCity && i != startCity) {
-				firstPermutation[index] = cityList[i];
-				//System.out.print("First Permutation:"+firstPermutation[index]+",");
-				index++;
-				//System.out.print("cityList:"+cityList[i]+",");
-
+			for (i = 0; i < permutation.length - 1; i++) {
+				thisLength += findLength(citiesList.get(permutation[i]),
+						citiesList.get(permutation[i + 1]));
 			}
+
+			if (thisLength < minLength) {
+				minLength = thisLength;
+				minRoute = permutation.clone();
+			}
+
+		} while (nextPermutation(permutation));
+
+		List<City> minCitiesRoute = new Vector<City>();
+		for (int i = 0; i < minRoute.length; i++) {
+			minCitiesRoute.add(citiesList.get(minRoute[i]));
 		}
-		Arrays.sort(firstPermutation);
-		cityList = firstPermutation.clone();
-		
-		return firstPermutation;
+		minCitiesRoute.add(0, this.startCity);
+		return minCitiesRoute;
 	}
 
 	/**
@@ -253,29 +221,60 @@ public final class TspTask extends TaskBase<int[]> implements Task<int[]>,
 	/**
 	 * Computes the distance between two points
 	 */
-	private double findLength(double x1, double y1, double x2, double y2) {
+	private double findLength(City c1, City c2) {
+		double x1 = c1.getX();
+		double y1 = c1.getY();
+		double x2 = c2.getX();
+		double y2 = c2.getY();
 		return Point2D.distance(x1, y1, x2, y2);
 
 	}
 
+	@Override
 	/**
-	 * Returns the unique identifier of this task
-	 * 
-	 * @see api.Task Task
+	 * Number of subtasks created in each stage of recursion
 	 */
-
-	private int getTaskLevel() {
-		String[] parts = this.getId().split(ID_DELIM);
-		int level = Integer.parseInt(parts[0]);
-		return level;
+	public int getDecompositionSize() {
+		return this.numberOfChildren;
 	}
 
-
-
 	@Override
-	public int getDecompositionSize() {
-		
-		return this.numberOfChildren;
+	/**
+	 * Implements the conquer phase of TSP divide and conquer solution
+	 */
+	public Result<List<City>> compose(List<?> list) {
+		List<List<City>> minRoutes = (List<List<City>>) list;
+		List<City> chosenMinRoute = null;
+		double minLength = Double.MAX_VALUE;
+		int level = this.getTaskLevel();
+		for (List<City> route : minRoutes) {
+			City routeStartCity = route.get(0);
+
+			double thisLength = findRouteLength(route)
+					+ findLength(this.startCity, routeStartCity);
+			if (level == DEFAULT_TASK_LEVEL) {
+				City routeEndCity = route.get(route.size() - 1);
+				thisLength += findLength(this.startCity, routeEndCity);
+			}
+
+			if (thisLength < minLength) {
+				minLength = thisLength;
+				chosenMinRoute = route;
+			}
+		}
+
+		chosenMinRoute.add(0, this.startCity);
+		return new ResultImpl<List<City>>(this.getStartTime(),
+				System.currentTimeMillis(), chosenMinRoute);
+	}
+
+	private double findRouteLength(List<City> aListOfCities) {
+		double length = 0;
+		int i;
+		for (i = 0; i < aListOfCities.size() - 1; i++) {
+			length += findLength(aListOfCities.get(i), aListOfCities.get(i + 1));
+		}
+		return length;
 	}
 
 }

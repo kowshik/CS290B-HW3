@@ -8,45 +8,62 @@ import system.ResultImpl;
 import api.Result;
 import api.Task;
 
-public class MandelbrotSetTask extends TaskBase<MandelbrotSetTask.MandelbrotSetChunk> implements
+/**
+ * Computes the <a href="http://en.wikipedia.org/wiki/Mandelbrot_set">Mandelbrot
+ * set</a>
+ * 
+ * @author Manasa Chandrasekhar
+ * @author Kowshik Prakasam
+ */
+
+public class MandelbrotSetTask extends
+		TaskBase<MandelbrotSetTask.MandelbrotSetTaskResult> implements
 		Serializable {
-	
-	public class MandelbrotSetChunk implements Serializable{
-		
+
+	/**
+	 * Represents the result of Mandelbrot Set computation
+	 * 
+	 * @author Manasa Chandrasekhar
+	 * @author Kowshik Prakasam
+	 * 
+	 */
+	public class MandelbrotSetTaskResult implements Serializable {
+
 		private static final long serialVersionUID = -6076247513686818330L;
 		int x;
 		int y;
 		int[][] values;
-		
-		public MandelbrotSetChunk(int x,int y,int[][] values){
-			this.x=x;
-			this.y=y;
-			this.values=values;
+
+		public MandelbrotSetTaskResult(int x, int y, int[][] values) {
+			this.x = x;
+			this.y = y;
+			this.values = values;
 		}
+
 		public int getX() {
 			return x;
 		}
+
 		public void setX(int x) {
 			this.x = x;
 		}
-		
+
 		public int getY() {
 			return y;
 		}
+
 		public void setY(int y) {
 			this.y = y;
 		}
-		
+
 		public int[][] getValues() {
 			return values;
 		}
+
 		public void setValues(int[][] values) {
 			this.values = values;
 		}
-		
-		
 	}
-	
 
 	private static final long serialVersionUID = -2438392380951095822L;
 	private static final int NUM_OF_CHILDREN = 16;
@@ -55,11 +72,30 @@ public class MandelbrotSetTask extends TaskBase<MandelbrotSetTask.MandelbrotSetC
 	private double lowerY;
 	private double edgeLength;
 	private int n;
+
 	private int iterLimit;
 	private int taskSize;
 	private int chunkLocationX;
 	private int chunkLocationY;
-	
+
+	/**
+	 * 
+	 * @param lowerX
+	 *            X-coordinate of the lower left corner of a square in the
+	 *            complex plane
+	 * @param lowerY
+	 *            Y-coordinate of the lower left corner of a square in the
+	 *            complex plane
+	 * @param edgeLength
+	 *            Edge length of the square in the complex plane, whose sides
+	 *            are parallel to the axes
+	 * @param n
+	 *            Square region of the complex plane subdivided into n X n
+	 *            squares, each of which is visualized by 1 pixel
+	 * @param iterLimit
+	 *            Defines when the representative point of a region is
+	 *            considered to be in the Mandelbrot set.
+	 */
 	public MandelbrotSetTask(double lowerX, double lowerY, double edgeLength,
 			int n, int iterLimit) {
 		super(DEFAULT_TASK_ID, DEFAULT_TASK_ID, Task.Status.DECOMPOSE, System
@@ -69,39 +105,47 @@ public class MandelbrotSetTask extends TaskBase<MandelbrotSetTask.MandelbrotSetC
 		this.edgeLength = edgeLength;
 		this.n = n;
 		this.iterLimit = iterLimit;
-		this.taskSize = new Double(Math.sqrt(n * n / NUM_OF_CHILDREN)).intValue();
+		this.taskSize = new Double(Math.sqrt(n * n / NUM_OF_CHILDREN))
+				.intValue();
+
 	}
 
 	private MandelbrotSetTask(double lowerX, double lowerY, double edgeLength,
-			int n, int iterLimit, int chunkLocationX,int chunkLocationY, Task.Status s, String taskId, String parentId) {
+			int n, int iterLimit, int chunkLocationX, int chunkLocationY,
+			Task.Status s, String taskId, String parentId) {
 		this(lowerX, lowerY, edgeLength, n, iterLimit);
-		this.chunkLocationX=chunkLocationX;
-		this.chunkLocationY=chunkLocationY;
+		this.chunkLocationX = chunkLocationX;
+		this.chunkLocationY = chunkLocationY;
 		super.init(s, taskId, parentId);
 	}
 
+	
 	@Override
-	public Result<MandelbrotSetChunk> decompose() {
+	/**
+	 * Implements the decompose phase of Mandelbrot Set computation
+	 */
+	public Result<MandelbrotSetTaskResult> decompose() {
 		if (this.getId().equals(DEFAULT_TASK_ID)) {
-			List<Task<MandelbrotSetChunk>> subTasks = this.chopMandelbrotTask();
-			return new ResultImpl<MandelbrotSetChunk>(this.getStartTime(),
+			List<Task<MandelbrotSetTaskResult>> subTasks = this
+					.chopMandelbrotTask();
+			return new ResultImpl<MandelbrotSetTaskResult>(this.getStartTime(),
 					System.currentTimeMillis(), subTasks);
-		}
-		else{
-			MandelbrotSetChunk value=this.computeMandelbrotSet();
-			return new ResultImpl<MandelbrotSetChunk>(this.getStartTime(),
+		} else {
+			MandelbrotSetTaskResult value = this.computeMandelbrotSet();
+			return new ResultImpl<MandelbrotSetTaskResult>(this.getStartTime(),
 					System.currentTimeMillis(), value);
 		}
-		
+
 	}
 
-	private MandelbrotSetChunk computeMandelbrotSet() {
+	//Core mandelbrot set computation
+	private MandelbrotSetTaskResult computeMandelbrotSet() {
 		int[][] values = new int[n][n];
 		int i = 0, j = 0;
-		for (double xIndex = this.lowerX; i<n; xIndex += edgeLength, i++) {
+		for (double xIndex = this.lowerX; i < n; xIndex += edgeLength, i++) {
 			j = 0;
-			
-			for (double yIndex = this.lowerY; j<n; yIndex += edgeLength, j++) {
+
+			for (double yIndex = this.lowerY; j < n; yIndex += edgeLength, j++) {
 				double zLowerReal = xIndex;
 				double zLowerComplex = yIndex;
 				double zReal = zLowerReal;
@@ -109,13 +153,13 @@ public class MandelbrotSetTask extends TaskBase<MandelbrotSetTask.MandelbrotSetC
 
 				int k;
 				for (k = 0; k < this.iterLimit
-						&& (modulus(zReal,zComplex) <= MandelbrotSetTask.MANDELBROT_LIMIT); k++) {
+						&& (modulus(zReal, zComplex) <= MandelbrotSetTask.MANDELBROT_LIMIT); k++) {
 					double zPrevReal = zReal;
 					zReal = zReal * zReal - zComplex * zComplex + zLowerReal;
 					zComplex = 2 * zPrevReal * zComplex + zLowerComplex;
 				}
 
-				if (modulus(zReal,zComplex) <= MandelbrotSetTask.MANDELBROT_LIMIT) {
+				if (modulus(zReal, zComplex) <= MandelbrotSetTask.MANDELBROT_LIMIT) {
 
 					values[i][j] = this.iterLimit;
 				} else {
@@ -124,24 +168,28 @@ public class MandelbrotSetTask extends TaskBase<MandelbrotSetTask.MandelbrotSetC
 				}
 			}
 		}
-		
-		return new MandelbrotSetChunk(this.chunkLocationX, this.chunkLocationY, values);
-		
+
+		return new MandelbrotSetTaskResult(this.chunkLocationX,
+				this.chunkLocationY, values);
+
 	}
 
-	private List<Task<MandelbrotSetChunk>> chopMandelbrotTask(){
+	
+	/**
+	 * Subdivides a mandelbrot set task
+	 */
+	private List<Task<MandelbrotSetTaskResult>> chopMandelbrotTask() {
 		int i = 0, j = 0;
 		double jump = edgeLength / n;
 		List<String> childIds = this.getChildIds();
 		int childIdIndex = 0;
-		List<Task<MandelbrotSetChunk>> subTasks = new Vector<Task<MandelbrotSetChunk>>();
-		for (double xIndex = this.lowerX; i < n; xIndex += jump
-				* this.taskSize, i += this.taskSize) {
+		List<Task<MandelbrotSetTaskResult>> subTasks = new Vector<Task<MandelbrotSetTaskResult>>();
+		for (double xIndex = this.lowerX; i < n; xIndex += jump * this.taskSize, i += this.taskSize) {
 			j = 0;
 			for (double yIndex = this.lowerY; j < n; yIndex += jump
 					* this.taskSize, j += this.taskSize) {
-				Task<MandelbrotSetChunk> aMandelbrotSetTask = new MandelbrotSetTask(
-						xIndex, yIndex, jump, this.taskSize, iterLimit,i,j,
+				Task<MandelbrotSetTaskResult> aMandelbrotSetTask = new MandelbrotSetTask(
+						xIndex, yIndex, jump, this.taskSize, iterLimit, i, j,
 						Task.Status.DECOMPOSE, childIds.get(childIdIndex),
 						this.getId());
 				subTasks.add(aMandelbrotSetTask);
@@ -150,18 +198,19 @@ public class MandelbrotSetTask extends TaskBase<MandelbrotSetTask.MandelbrotSetC
 		}
 		return subTasks;
 	}
-	
-	
-	
+
 	@Override
-	public Result<MandelbrotSetChunk> compose(List<?> list) {
-		List<MandelbrotSetChunk> listOfChunks=(List<MandelbrotSetChunk>)list;
-		int[][] allValues=new int[this.n][this.n];
-		
-		for(MandelbrotSetChunk chunk : listOfChunks){
+	/**
+	 * Implements the compose phase of Mandelbrot Set computation
+	 */
+	public Result<MandelbrotSetTaskResult> compose(List<?> list) {
+		List<MandelbrotSetTaskResult> listOfChunks = (List<MandelbrotSetTaskResult>) list;
+		int[][] allValues = new int[this.n][this.n];
+
+		for (MandelbrotSetTaskResult chunk : listOfChunks) {
 			int[][] values = chunk.getValues();
-			int startX=chunk.getX();
-			int startY=chunk.getY();
+			int startX = chunk.getX();
+			int startY = chunk.getY();
 			for (int valuesRow = 0; valuesRow < values.length; valuesRow++) {
 				for (int valuesCol = 0; valuesCol < values[0].length; valuesCol++) {
 					int actualX = new Double(valuesRow + startX).intValue();
@@ -171,22 +220,26 @@ public class MandelbrotSetTask extends TaskBase<MandelbrotSetTask.MandelbrotSetC
 				}
 			}
 		}
-		
-		MandelbrotSetChunk finalResult=new MandelbrotSetChunk(this.chunkLocationX, this.chunkLocationY, allValues);
-		return new ResultImpl<MandelbrotSetChunk>(this.getStartTime(),
-				System.currentTimeMillis(), finalResult);
-		
-	}
 
+		MandelbrotSetTaskResult finalResult = new MandelbrotSetTaskResult(
+				this.chunkLocationX, this.chunkLocationY, allValues);
+		return new ResultImpl<MandelbrotSetTaskResult>(this.getStartTime(),
+				System.currentTimeMillis(), finalResult);
+
+	}
+	
+
+	/**
+	 * Number of subtasks created in each stage of recursion
+	 */
 	@Override
 	public int getDecompositionSize() {
 		return NUM_OF_CHILDREN;
 	}
-	
-	private double modulus(double zReal, double zComplex){
+
+	//Modulus of a complex number
+	private double modulus(double zReal, double zComplex) {
 		return Math.sqrt(zReal * zReal + zComplex * zComplex);
 	}
-	
-	
 
 }
